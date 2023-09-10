@@ -38,18 +38,18 @@ let getCreationDateTimeFromDir (dir: Directory) =
     )
     |> Seq.tryPick id
 
-let getCreationDateTimeFromFile (file: string) =
-    file
+let getCreationDateTimeFromFile (filePath: string) =
+    filePath
     |> ImageMetadataReader.ReadMetadata
     |> sortDirs
     |> Seq.map getCreationDateTimeFromDir
     |> Seq.tryPick id
-    |> Option.defaultWith (fun _ -> File.GetCreationTime file)
+    |> Option.defaultWith (fun _ -> File.GetCreationTime filePath)
 
-let genNewFile (file: string) (newBaseName: string) =
-    let dir = Path.GetDirectoryName file
-    let currentBaseName = Path.GetFileNameWithoutExtension file
-    let ext = Path.GetExtension file
+let genNewFilePath (filePath: string) (newBaseName: string) =
+    let dir = Path.GetDirectoryName filePath
+    let currentBaseName = Path.GetFileNameWithoutExtension filePath
+    let ext = Path.GetExtension(filePath).ToLower()
     let rec loop i =
         let candidateBaseName = if i = 1 then newBaseName else $"{newBaseName}[{i}]"
         let candidatePath = Path.Combine (dir, candidateBaseName + ext)
@@ -67,8 +67,8 @@ let processFile changesFileName file =
     File.SetLastWriteTime (file, dateTime)
     if changesFileName then
         let newBaseName = dateTime.ToString "yyyy-MM-dd HHmmss"
-        let newFile = genNewFile file newBaseName
-        File.Move (file, newFile)
+        let newFilePath = genNewFilePath file newBaseName
+        File.Move (file, newFilePath)
     dateTime
 
 let visitFolder (folder: string) (pattern: string) fileAction =
@@ -111,7 +111,7 @@ let usageList () =
 let usageProcess () =
     printfn "Usage: medtool <folder> [pattern] [changesFileNames]"
 
-let usage = usageRead >> usageProcess
+let usage = usageRead >> usageList >> usageProcess
 
 let (| Bool |) (str: string) = str.ToLower() = "true"
 
